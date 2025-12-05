@@ -29,15 +29,15 @@ const Principles: React.FC = () => {
           {/* Left Section - Title */}
           <div className="flex flex-col justify-center space-y-8">
             <div className="space-y-4">
-              <h2 className="text-6xl lg:text-7xl font-light tracking-widest text-white opacity-90">
+              <h2 className="text-6xl lg:text-6xl font-light tracking-widest text-white opacity-90">
                 PRINCÍPIOS
               </h2>
-              <h2 className="text-7xl lg:text-8xl font-bold tracking-tight text-white drop-shadow-lg">
+              <h2 className="text-7xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-lg">
                 INEGOCIÁVEIS
               </h2>
             </div>
             
-            <div className="h-1 w-24 bg-gradient-to-r from-cyan-400 to-transparent rounded-full" />
+            <div className="h-1 w-30 bg-gradient-to-r from-cyan-400 to-transparent rounded-full" />
           </div>
 
           {/* Right Section - Principles List */}
