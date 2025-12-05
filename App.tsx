@@ -58,9 +58,9 @@ const App: React.FC = () => {
 
   return (
     <div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden">
-      
+
       {/* --- Main Display Area --- */}
-      <div className="w-full h-full lg:aspect-video lg:h-[90vh] lg:w-auto relative shadow-2xl overflow-hidden print:w-full print:h-screen print:shadow-none">
+      <div className="w-full h-full relative shadow-2xl overflow-hidden print:w-full print:h-screen print:shadow-none">
         
         {/* Render ALL slides for print, but only current for screen */}
         <div className="hidden print:block">
@@ -89,7 +89,7 @@ const App: React.FC = () => {
         </div>
         
         {/* --- Navigation Controls (Bottom Center) --- */}
-        <div className="absolute bottom-6 inset-x-0 flex justify-center gap-3 no-print z-50">
+        <div className="absolute bottom-5 inset-x-0 flex justify-center gap-3 no-print z-50">
           <button 
             onClick={prevSlide}
             disabled={currentSlide === 0}

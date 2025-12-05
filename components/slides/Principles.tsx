@@ -14,10 +14,10 @@ const Principles: React.FC = () => {
           {PRINCIPLES.map((principle, index) => (
             <li
               key={index}
-              className="flex items-start gap-3 border border-slate-800/60 bg-slate-900/40 rounded-xl p-4 hover:border-cyan-500/40 transition-colors"
+              className="flex items-start gap-3 p-1"
             >
-              <span className="text-cyan-300 font-semibold text-sm mt-0.5">{index + 1}.</span>
-              <span className="flex-1 text-slate-100">{principle}</span>
+              <span className="text-cyan-300 font-semibold text-xs md:text-sm mt-0.5">{index + 1}.</span>
+              <span className="flex-1 text-slate-100 text-sm md:text-base leading-snug">{principle}</span>
             </li>
           ))}
         </ul>
