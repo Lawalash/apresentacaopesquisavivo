@@ -16,7 +16,7 @@ const PRINCIPLES = [
 
 const Principles: React.FC = () => {
   return (
-    <div className="h-full w-full bg-[#051021] flex items-center justify-center relative overflow-hidden">
+    <div className="h-full w-full flex items-center justify-center relative overflow-hidden">
       {/* Background geometric shapes */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-900 rounded-full blur-3xl" />
