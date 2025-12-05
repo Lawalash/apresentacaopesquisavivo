@@ -18,3 +18,13 @@ View your app in AI Studio: https://ai.studio/apps/drive/1YK3VS-L9IRapTlvnLblP9W
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Deploy to Netlify
+
+1. Commit and push this project to a Git repository provider (GitHub, GitLab, etc.).
+2. In Netlify, create a new site from your repository and set:
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist`
+3. Add an environment variable in Netlify > Site configuration > Environment variables:
+   - `GEMINI_API_KEY` with your Gemini API key value.
+4. Trigger a deploy. The included [`netlify.toml`](netlify.toml) also configures SPA redirects so client-side routes resolve correctly.
