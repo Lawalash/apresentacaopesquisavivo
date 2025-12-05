@@ -88,9 +88,9 @@ const App: React.FC = () => {
           </SlideLayout>
         </div>
         
-        {/* --- Navigation Controls (Top Left) --- */}
-        <div className="absolute top-6 left-6 flex gap-2 no-print z-50">
-          <button 
+        {/* --- Navigation Controls (Bottom Center) --- */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 no-print z-50">
+          <button
             onClick={prevSlide}
             disabled={currentSlide === 0}
             title="Slide Anterior"
@@ -99,7 +99,7 @@ const App: React.FC = () => {
           >
             <ChevronLeft size={24} />
           </button>
-          <button 
+          <button
             onClick={nextSlide}
             disabled={currentSlide === totalSlides - 1}
             title="Próximo Slide"
