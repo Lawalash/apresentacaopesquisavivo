@@ -1,5 +1,4 @@
 import React from 'react';
-import TechnologicalBackground from '../TechnologicalBackground';
 
 // Sample data - ajuste conforme necessário
 const PRINCIPLES = [
@@ -12,68 +11,46 @@ const PRINCIPLES = [
   "NÃO ACEITAMOS NADA QUE ESTEJA ABAIXO DO NÍVEL DE EXCELÊNCIA.",
   "SOMOS HUMILDES E HONESTOS PARA ADMITIR NOSSOS ERROS.",
   "SOMOS CORAJOSOS O SUFICIENTE PARA MUDARMOS QUANDO NECESSÁRIO.",
-  "SOMOS FELIZES COM O QUE FAZEMOS.",
+  "SOMOS FELIZES COM O QUE FAZEMOS."
 ];
 
 const Principles: React.FC = () => {
   return (
-    <div className="relative h-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40">
-      {/* Background Animation */}
-      <TechnologicalBackground className="opacity-20" particleCount={60} speed={0.25} />
+    <div className="h-full w-full bg-[#051021] flex items-center justify-center relative overflow-hidden">
+      {/* Background geometric shapes */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-900 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-800 rounded-full blur-3xl" />
+      </div>
 
-      {/* Accent Glows */}
-      <div className="absolute -left-20 -top-10 h-48 w-48 rounded-full bg-cyan-500/20 blur-3xl" />
-      <div className="absolute -right-24 bottom-0 h-52 w-52 rounded-full bg-blue-600/10 blur-3xl" />
-
-      <div className="relative z-10 h-full flex flex-col">
-        <div className="grid h-full grid-cols-1 gap-12 lg:grid-cols-[1.1fr_1fr] items-center p-6 lg:p-8">
+      <div className="relative z-10 w-full h-full flex items-center justify-center p-12">
+        <div className="w-full max-w-7xl grid grid-cols-2 gap-16 items-center">
+          
           {/* Left Section - Title */}
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <p className="uppercase tracking-[0.2em] text-xs md:text-sm text-cyan-400 font-semibold opacity-80">
-                Nossa Essência
-              </p>
-              <div className="space-y-1">
-                <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-                  Princípios
-                </h2>
-                <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent leading-tight">
-                  Inegociáveis
-                </h2>
-              </div>
+          <div className="flex flex-col justify-center space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-6xl lg:text-7xl font-light tracking-widest text-white opacity-90">
+                PRINCÍPIOS
+              </h2>
+              <h2 className="text-7xl lg:text-8xl font-bold tracking-tight text-white drop-shadow-lg">
+                INEGOCIÁVEIS
+              </h2>
             </div>
-
-            <div className="h-1 w-24 bg-gradient-to-r from-cyan-400 via-cyan-300 to-transparent rounded-full" />
-
-            <p className="text-slate-300 text-sm md:text-base leading-relaxed max-w-xl">
-              Os valores fundamentais que guiam nossas decisões, ações e relacionamentos.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-400">
-              <div className="rounded-lg border border-white/5 bg-white/5 p-4">
-                <p className="text-cyan-300 font-semibold">Foco e Simplicidade</p>
-                <p className="mt-2 leading-relaxed">Priorizamos impacto claro, soluções diretas e contribuição relevante.</p>
-              </div>
-              <div className="rounded-lg border border-white/5 bg-white/5 p-4">
-                <p className="text-cyan-300 font-semibold">Excelência e Colaboração</p>
-                <p className="mt-2 leading-relaxed">Mantemos padrão alto, aprendemos com erros e evoluímos juntos.</p>
-              </div>
-            </div>
+            
+            <div className="h-1 w-24 bg-gradient-to-r from-cyan-400 to-transparent rounded-full" />
           </div>
 
           {/* Right Section - Principles List */}
-          <div className="flex flex-col space-y-3 md:space-y-4 bg-slate-900/60 border border-slate-800 rounded-xl p-4 lg:p-6 backdrop-blur">
+          <div className="flex flex-col space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-4">
             {PRINCIPLES.map((principle, index) => (
               <div
                 key={index}
-                className="group flex items-start gap-4 p-4 rounded-lg bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/5 hover:border-cyan-400/30 transition-all duration-300 cursor-default"
+                className="flex items-start gap-6 group"
               >
-                <div className="flex-shrink-0">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-900 font-bold text-sm shadow-lg shadow-cyan-500/20">
-                    {index + 1}
-                  </span>
-                </div>
-                <span className="flex-1 text-slate-100 text-sm md:text-base leading-relaxed group-hover:text-cyan-300 transition-colors duration-300">
+                <span className="text-cyan-400 font-bold text-xl flex-shrink-0 pt-1">
+                  {index + 1}.
+                </span>
+                <span className="text-slate-100 text-lg leading-relaxed group-hover:text-cyan-300 transition-colors duration-300">
                   {principle}
                 </span>
               </div>
