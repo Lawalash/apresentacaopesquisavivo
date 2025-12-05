@@ -47,10 +47,16 @@ const Principles: React.FC = () => {
                 key={index}
                 className="flex items-start gap-6 group"
               >
-                <span className="text-cyan-400 font-bold text-xl flex-shrink-0 pt-1">
+                <span
+                  className="text-cyan-400 font-bold text-xl flex-shrink-0 pt-1"
+                  style={{ fontSize: "0.9rem", lineHeight: "1.75rem" }}
+                >
                   {index + 1}.
                 </span>
-                <span className="text-slate-100 text-lg leading-relaxed group-hover:text-cyan-300 transition-colors duration-300">
+                <span
+                  className="text-slate-100 text-lg leading-relaxed group-hover:text-cyan-300 transition-colors duration-300"
+                  style={{ fontSize: "0.8rem", lineHeight: "1.75rem" }}
+                >
                   {principle}
                 </span>
               </div>
