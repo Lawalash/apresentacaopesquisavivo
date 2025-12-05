@@ -67,10 +67,10 @@ const Principles: React.FC = () => {
         </div>
 
         <div className="relative z-10 text-white">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-light tracking-wider mb-1 sm:mb-2 opacity-90">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-5xl font-light tracking-wider mb-1 sm:mb-2 opacity-90">
             PRINCÍPIOS
           </h2>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white drop-shadow-lg leading-tight">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-6xl font-bold tracking-tight text-white drop-shadow-lg leading-tight">
             INEGOCIÁVEIS
           </h2>
         </div>
