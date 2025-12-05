@@ -88,8 +88,8 @@ const App: React.FC = () => {
           </SlideLayout>
         </div>
         
-        {/* --- Navigation Controls (Top Left) --- */}
-        <div className="absolute top-6 left-6 flex gap-2 no-print z-50">
+        {/* --- Navigation Controls (Bottom Center) --- */}
+        <div className="absolute bottom-6 inset-x-0 flex justify-center gap-3 no-print z-50">
           <button 
             onClick={prevSlide}
             disabled={currentSlide === 0}
