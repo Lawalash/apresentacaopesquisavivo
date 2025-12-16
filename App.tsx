@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Printer, Menu, X } from 'lucide-react';
 import { QUESTIONS } from './data/report';
 
@@ -17,28 +17,30 @@ const App: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Define the slide sequence
-  const slides = [
-    { id: 'cover', component: <Cover />, title: '' },
-    { id: 'principles', component: <Principles />, title: 'Princípios Inegociáveis' },
-    { id: 'exec-summary', component: <ExecutiveSummary />, title: 'Resumo Executivo (KPIs)' },
-    // Map Questions to general + hierarchy slides
-    ...QUESTIONS.flatMap(q => ([
-      {
-        id: `${q.id}-geral`,
-        component: <ChartSlide data={q} />,
-        title: `${q.title} (Geral)`
-      },
-      {
-        id: `${q.id}-hierarquia`,
-        component: <HierarchySlide question={q} />,
-        title: `${q.title} (Por hierarquia)`
-      }
-    ])),
-    { id: 'text-analysis', component: <TextAnalysis />, title: 'Análise de Respostas Abertas' },
-    { id: 'action-plan', component: <ActionPlan />, title: 'Prioridades & Plano de Ação' },
-    { id: 'thank-you', component: <ThankYou />, title: '' }
-  ];
+  const slides = useMemo(() => {
+    return [
+      { id: 'cover', component: <Cover />, title: '' },
+      { id: 'principles', component: <Principles />, title: 'Princípios Inegociáveis' },
+      { id: 'exec-summary', component: <ExecutiveSummary />, title: 'Resumo Executivo (KPIs)' },
+
+      ...QUESTIONS.flatMap(q => ([
+        {
+          id: `${q.id}-geral`,
+          component: <ChartSlide data={q} />,
+          title: `${q.title} (Geral)`,
+        },
+        {
+          id: `${q.id}-hierarquia`,
+          component: <HierarchySlide question={q} />,
+          title: `${q.title} (Por hierarquia)`,
+        }
+      ])),
+
+      { id: 'text-analysis', component: <TextAnalysis />, title: 'Análise de Respostas Abertas' },
+      { id: 'action-plan', component: <ActionPlan />, title: 'Prioridades & Plano de Ação' },
+      { id: 'thank-you', component: <ThankYou />, title: '' },
+    ];
+  }, []);
 
   const totalSlides = slides.length;
 
@@ -50,55 +52,51 @@ const App: React.FC = () => {
     setCurrentSlide(prev => Math.max(prev - 1, 0));
   }, []);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
       if (e.key === 'ArrowLeft') prevSlide();
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextSlide, prevSlide]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   return (
     <div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden">
-
-      {/* --- Main Display Area --- */}
       <div className="w-full h-full relative shadow-2xl overflow-hidden print:w-full print:h-screen print:shadow-none">
-        
-        {/* Render ALL slides for print, but only current for screen */}
+
+        {/* Print View (renderiza tudo) */}
         <div className="hidden print:block">
-           {slides.map((slide, idx) => (
-             <div key={idx} className="h-screen w-screen break-after-page page-break-always">
-               <SlideLayout 
-                 slideNumber={idx + 1} 
-                 totalSlides={totalSlides}
-                 title={slide.title}
-               >
-                 {slide.component}
-               </SlideLayout>
-             </div>
-           ))}
+          {slides.map((slide, idx) => (
+            <div key={slide.id} className="h-screen w-screen break-after-page page-break-always">
+              <SlideLayout
+                slideNumber={idx + 1}
+                totalSlides={totalSlides}
+                title={slide.title}
+              >
+                {slide.component}
+              </SlideLayout>
+            </div>
+          ))}
         </div>
 
-        {/* Screen View */}
+        {/* Screen View (somente o slide atual) */}
         <div className="w-full h-full print:hidden">
-          <SlideLayout 
-            slideNumber={currentSlide + 1} 
+          <SlideLayout
+            slideNumber={currentSlide + 1}
             totalSlides={totalSlides}
-            title={slides[currentSlide].title}
+            title={slides[currentSlide]?.title ?? ''}
           >
-            {slides[currentSlide].component}
+            {slides[currentSlide]?.component}
           </SlideLayout>
         </div>
-        
-        {/* --- Navigation Controls (Bottom Center) --- */}
+
+        {/* Navigation Controls (Bottom Center) */}
         <div className="absolute bottom-5 inset-x-0 flex justify-center gap-3 no-print z-50">
-          <button 
+          <button
             onClick={prevSlide}
             disabled={currentSlide === 0}
             title="Slide Anterior"
@@ -107,7 +105,8 @@ const App: React.FC = () => {
           >
             <ChevronLeft size={24} />
           </button>
-          <button 
+
+          <button
             onClick={nextSlide}
             disabled={currentSlide === totalSlides - 1}
             title="Próximo Slide"
@@ -118,17 +117,17 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* --- Top Right Controls --- */}
+        {/* Top Right Controls */}
         <div className="absolute top-6 right-6 flex gap-3 no-print z-50">
-           <button 
+          <button
             onClick={handlePrint}
             title="Imprimir / PDF"
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-600 flex items-center gap-2 text-sm font-medium px-4"
           >
             <Printer size={16} /> <span className="hidden sm:inline">Exportar</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setMenuOpen(true)}
             title="Menu de Slides"
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-600"
@@ -137,7 +136,7 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* --- Slide Menu Overlay --- */}
+        {/* Slide Menu Overlay */}
         {menuOpen && (
           <div className="absolute inset-0 bg-slate-900/95 z-50 p-8 flex flex-col no-print backdrop-blur-sm">
             <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
@@ -146,17 +145,18 @@ const App: React.FC = () => {
                 <X size={32} />
               </button>
             </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-8">
               {slides.map((slide, idx) => (
                 <button
-                  key={idx}
+                  key={slide.id}
                   onClick={() => {
                     setCurrentSlide(idx);
                     setMenuOpen(false);
                   }}
                   className={`p-4 rounded-lg border text-left transition-all ${
-                    currentSlide === idx 
-                      ? 'bg-cyan-900/30 border-cyan-500 text-cyan-400' 
+                    currentSlide === idx
+                      ? 'bg-cyan-900/30 border-cyan-500 text-cyan-400'
                       : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
@@ -167,6 +167,7 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

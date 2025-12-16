@@ -1,4 +1,4 @@
-import { SurveyQuestion, KPI } from '../types';
+import type { SurveyQuestion, KPI, HierarchyBreakdown } from '../types';
 
 export const TOTAL_RESPONSES = 178;
 
@@ -8,7 +8,7 @@ export const HIERARCHY_TOTALS = {
   'Gerente Sênior': 2,
   'Analista Operação': 1,
   'Supervisor': 166,
-};
+} as const;
 
 export const PRINCIPLES = [
   "1. ESTAMOS AQUI PARA FAZER MELHOR QUE TODOS.",
@@ -30,17 +30,64 @@ export const KPIS: KPI[] = [
   { label: "Recomendação (Q6)", value: "74.2%", subtext: "Recomendariam o modelo", trend: "positive" },
 ];
 
-export const QUESTIONS: SurveyQuestion[] = [
+type OverallSpecItem = { name: string; from: string[]; color?: string };
+
+const sumFromBreakdown = (breakdown: HierarchyBreakdown[], names: string[]) => {
+  const set = new Set(names);
+  return breakdown.reduce((acc, h) => {
+    const local = h.distribution.reduce((a, d) => a + (set.has(d.name) ? d.value : 0), 0);
+    return acc + local;
+  }, 0);
+};
+
+const buildOverallData = (breakdown: HierarchyBreakdown[], spec: OverallSpecItem[]) => {
+  return spec.map(s => ({
+    name: s.name,
+    value: sumFromBreakdown(breakdown, s.from),
+    color: s.color,
+  }));
+};
+
+const OVERALL_SPECS: Record<string, OverallSpecItem[]> = {
+  Q1: [
+    { name: 'Satisfeito / Muito satisfeito', from: ['Muito satisfeito', 'Satisfeito'], color: '#06b6d4' },
+    { name: 'Neutro', from: ['Neutro'], color: '#94a3b8' },
+    { name: 'Insatisfeito / Muito insatisfeito', from: ['Insatisfeito', 'Muito insatisfeito'], color: '#ef4444' },
+  ],
+  Q2: [
+    { name: 'Satisfeito / Muito satisfeito', from: ['Muito satisfeito', 'Satisfeito'], color: '#06b6d4' },
+    { name: 'Neutro', from: ['Neutro'], color: '#94a3b8' },
+    { name: 'Insatisfeito / Muito insatisfeito', from: ['Insatisfeito', 'Muito insatisfeito'], color: '#ef4444' },
+  ],
+  Q3: [
+    { name: 'Contribui bastante / essencial', from: ['Contribui bastante / essencial'], color: '#06b6d4' },
+    { name: 'Contribui moderadamente', from: ['Contribui moderadamente'], color: '#94a3b8' },
+    { name: 'Pouco / Não contribui', from: ['Pouco / Não contribui'], color: '#ef4444' },
+  ],
+  Q4: [
+    { name: 'Satisfeito / Muito satisfeito', from: ['Satisfeito / Muito satisfeito'], color: '#06b6d4' },
+    { name: 'Neutro', from: ['Neutro'], color: '#94a3b8' },
+    { name: 'Insatisfeito / Muito insatisfeito', from: ['Insatisfeito / Muito insatisfeito'], color: '#ef4444' },
+  ],
+  Q5: [
+    { name: 'Claro / Muito claro', from: ['Claro / Muito claro'], color: '#06b6d4' },
+    { name: 'Neutro', from: ['Neutro'], color: '#94a3b8' },
+    { name: 'Pouco claro / Confuso', from: ['Pouco claro / Confuso'], color: '#ef4444' },
+  ],
+  Q6: [
+    { name: 'Recomendo', from: ['Recomendo'], color: '#06b6d4' },
+    { name: 'Talvez', from: ['Talvez'], color: '#94a3b8' },
+    { name: 'Não recomendaria', from: ['Não recomendaria'], color: '#ef4444' },
+  ],
+};
+
+const QUESTIONS_SOURCE: SurveyQuestion[] = [
   {
     id: 'Q1',
     title: 'Q1 — Satisfação com o projeto de Governança Locker',
     chartType: 'bar',
-    positiveOptions: ['Muito satisfeito', 'Satisfeito', 'Satisfeito / Muito satisfeito'],
-    data: [
-      { name: 'Satisfeito / Muito satisfeito', value: 92, color: '#06b6d4' }, // Cyan 500
-      { name: 'Neutro', value: 58, color: '#94a3b8' }, // Slate 400
-      { name: 'Insatisfeito / Muito insatisfeito', value: 28, color: '#ef4444' }, // Red 500
-    ],
+    positiveOptions: ['Muito satisfeito', 'Satisfeito'],
+    data: [], // será derivado do breakdown
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -98,18 +145,15 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'Embora a maioria (51,7%) esteja satisfeita, há um bloco neutro significativo (32,6%) que representa uma oportunidade de conversão através de melhorias visíveis.'
+    insight: 'Embora a maioria (51,7%) esteja satisfeita, há um bloco neutro significativo (32,6%) que representa uma oportunidade de conversão através de melhorias visíveis.',
   },
+
   {
     id: 'Q2',
     title: 'Q2 — Estabilidade / funcionamento do Locker',
     chartType: 'bar',
-    positiveOptions: ['Muito satisfeito', 'Satisfeito', 'Satisfeito / Muito satisfeito'],
-    data: [
-      { name: 'Satisfeito / Muito satisfeito', value: 96, color: '#06b6d4' },
-      { name: 'Neutro', value: 56, color: '#94a3b8' },
-      { name: 'Insatisfeito / Muito insatisfeito', value: 26, color: '#ef4444' },
-    ],
+    positiveOptions: ['Muito satisfeito', 'Satisfeito'],
+    data: [],
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -167,18 +211,15 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'A estabilidade é bem avaliada pela maioria, mas 14,6% de insatisfação somada aos neutros indica riscos operacionais que precisam ser mitigados tecnicamente.'
+    insight: 'A estabilidade é bem avaliada pela maioria, mas 14,6% de insatisfação somada aos neutros indica riscos operacionais que precisam ser mitigados tecnicamente.',
   },
+
   {
     id: 'Q3',
     title: 'Q3 — Contribuição para controle de jornada / HE',
     chartType: 'bar',
     positiveOptions: ['Contribui bastante / essencial'],
-    data: [
-      { name: 'Contribui bastante / essencial', value: 107, color: '#06b6d4' },
-      { name: 'Contribui moderadamente', value: 46, color: '#94a3b8' },
-      { name: 'Pouco / Não contribui', value: 25, color: '#ef4444' },
-    ],
+    data: [],
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -226,18 +267,15 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'Este é o ponto mais forte da ferramenta: 60% dos usuários percebem alto valor no controle de jornada, validando o propósito central do projeto.'
+    insight: 'Este é o ponto mais forte da ferramenta: 60% dos usuários percebem alto valor no controle de jornada, validando o propósito central do projeto.',
   },
+
   {
     id: 'Q4',
     title: 'Q4 — Comunicação, suporte e acompanhamento',
     chartType: 'bar',
     positiveOptions: ['Satisfeito / Muito satisfeito'],
-    data: [
-      { name: 'Satisfeito / Muito satisfeito', value: 90, color: '#06b6d4' },
-      { name: 'Neutro', value: 72, color: '#94a3b8' },
-      { name: 'Insatisfeito / Muito insatisfeito', value: 16, color: '#ef4444' },
-    ],
+    data: [],
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -285,18 +323,15 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'A alta taxa de neutros (40,5%) sugere que o suporte funciona, mas falta proatividade ou agilidade percebida (SLAs). Comunicação precisa ser mais assertiva.'
+    insight: 'A alta taxa de neutros (40,5%) sugere que o suporte funciona, mas falta proatividade ou agilidade percebida (SLAs). Comunicação precisa ser mais assertiva.',
   },
+
   {
     id: 'Q5',
     title: 'Q5 — Clareza das regras e combinados',
     chartType: 'bar',
     positiveOptions: ['Claro / Muito claro'],
-    data: [
-      { name: 'Claro / Muito claro', value: 101, color: '#06b6d4' },
-      { name: 'Neutro', value: 72, color: '#94a3b8' },
-      { name: 'Pouco claro / Confuso', value: 18, color: '#ef4444' },
-    ],
+    data: [],
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -344,18 +379,15 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'As regras são claras para a maioria, mas novamente o grupo neutro (40,5%) indica que dúvidas sobre "buffer" e regras de pausa ainda persistem.'
+    insight: 'As regras são claras para a maioria, mas novamente o grupo neutro (40,5%) indica que dúvidas sobre "buffer" e regras de pausa ainda persistem.',
   },
+
   {
     id: 'Q6',
     title: 'Q6 — Recomendaria manter/expandir o modelo?',
     chartType: 'pie',
     positiveOptions: ['Recomendo'],
-    data: [
-      { name: 'Recomendo', value: 132, color: '#06b6d4' },
-      { name: 'Talvez', value: 37, color: '#94a3b8' },
-      { name: 'Não recomendaria', value: 9, color: '#ef4444' },
-    ],
+    data: [],
     hierarchyBreakdown: [
       {
         hierarchy: 'Coordenador',
@@ -403,9 +435,16 @@ export const QUESTIONS: SurveyQuestion[] = [
         ],
       },
     ],
-    insight: 'Resultado excelente de NPS potencial: 74,2% de promotores. A ferramenta tem alta aceitação final, apesar das fricções técnicas apontadas.'
-  }
+    insight: 'Resultado excelente de NPS potencial: 74,2% de promotores. A ferramenta tem alta aceitação final, apesar das fricções técnicas apontadas.',
+  },
 ];
+
+// Export final: "data" sempre coerente com o breakdown
+export const QUESTIONS: SurveyQuestion[] = QUESTIONS_SOURCE.map((q) => {
+  const spec = q.hierarchyBreakdown ? OVERALL_SPECS[q.id] : undefined;
+  if (!q.hierarchyBreakdown || !spec) return q;
+  return { ...q, data: buildOverallData(q.hierarchyBreakdown, spec) };
+});
 
 export const MOCK_COMMENTS = [
   "O sistema é muito bom para controlar as horas extras.",

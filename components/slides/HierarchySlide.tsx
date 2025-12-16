@@ -1,7 +1,17 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { SurveyQuestion } from '../../types';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  TooltipProps,
+} from 'recharts';
 import { Sparkles, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
+import { SurveyQuestion } from '../../types';
 
 interface Props {
   question: SurveyQuestion;
@@ -9,50 +19,125 @@ interface Props {
 
 const HIERARCHY_ORDER = ['Coordenador', 'Gerente Jr', 'Gerente Sênior', 'Analista Operação', 'Supervisor'];
 
-const HierarchySlide: React.FC<Props> = ({ question }) => {
-  const hierarchyData = useMemo(() => {
-    if (!question.hierarchyBreakdown) return [];
+type HierarchyRow = {
+  hierarchy: string;
+  total: number;
+  // dynamic keys: optionName -> count
+  [optionName: string]: string | number;
+};
 
-    return question.hierarchyBreakdown
-      .slice()
-      .sort((a, b) => HIERARCHY_ORDER.indexOf(a.hierarchy) - HIERARCHY_ORDER.indexOf(b.hierarchy))
-      .map(h => {
-        const total = h.totalResponses || h.distribution.reduce((acc, curr) => acc + curr.value, 0);
-        const entry: Record<string, number | string> = { hierarchy: h.hierarchy, total };
-        h.distribution.forEach(option => {
-          entry[option.name] = option.value;
-          entry[`${option.name}-count`] = option.value;
-        });
-        return entry;
+const orderIndex = (hierarchy: string) => {
+  const idx = HIERARCHY_ORDER.indexOf(hierarchy);
+  return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+};
+
+const safePct = (num: number, den: number) => (den > 0 ? (num / den) * 100 : 0);
+
+/**
+ * Torna o cálculo de "positivo" resiliente:
+ * - Se vier "Satisfeito / Muito satisfeito" e a distribuição tiver "Satisfeito" e "Muito satisfeito",
+ *   a gente expande.
+ */
+const expandPositiveOptions = (positiveOptions: string[], distributionNames: string[]) => {
+  const set = new Set<string>();
+
+  for (const opt of positiveOptions) {
+    if (distributionNames.includes(opt)) set.add(opt);
+
+    // tentativa de expandir "A / B" -> ["A","B"]
+    if (opt.includes('/')) {
+      opt.split('/').map(s => s.trim()).forEach(part => {
+        if (distributionNames.includes(part)) set.add(part);
       });
-  }, [question.hierarchyBreakdown]);
+    }
+  }
+
+  return [...set];
+};
+
+const HierarchySlide: React.FC<Props> = ({ question }) => {
+  const breakdown = question.hierarchyBreakdown ?? [];
+
+  const optionMeta = useMemo(() => {
+    // união das opções em todos os níveis
+    const names = new Set<string>();
+    const colors: Record<string, string> = {};
+
+    for (const h of breakdown) {
+      for (const d of h.distribution) {
+        names.add(d.name);
+        if (!colors[d.name] && d.color) colors[d.name] = d.color;
+      }
+    }
+
+    return {
+      optionNames: Array.from(names),
+      colors,
+    };
+  }, [breakdown]);
+
+  const hierarchyData = useMemo<HierarchyRow[]>(() => {
+    if (!breakdown.length) return [];
+
+    return breakdown
+      .slice()
+      .sort((a, b) => orderIndex(a.hierarchy) - orderIndex(b.hierarchy))
+      .map(h => {
+        const computedTotal = h.distribution.reduce((acc, curr) => acc + curr.value, 0);
+        const total = h.totalResponses ?? computedTotal;
+
+        const row: HierarchyRow = { hierarchy: h.hierarchy, total };
+
+        // preenche todas as opções com 0 (garante consistência do stack)
+        for (const opt of optionMeta.optionNames) row[opt] = 0;
+
+        // aplica os valores existentes
+        for (const d of h.distribution) row[d.name] = d.value;
+
+        return row;
+      });
+  }, [breakdown, optionMeta.optionNames]);
 
   const positiveStats = useMemo(() => {
-    if (!question.hierarchyBreakdown) return [];
-    const positiveOptions = question.positiveOptions || [question.data[0]?.name].filter(Boolean) as string[];
+    if (!breakdown.length) return [];
 
-    return question.hierarchyBreakdown
+    return breakdown
       .slice()
-      .sort((a, b) => HIERARCHY_ORDER.indexOf(a.hierarchy) - HIERARCHY_ORDER.indexOf(b.hierarchy))
+      .sort((a, b) => orderIndex(a.hierarchy) - orderIndex(b.hierarchy))
       .map(h => {
-        const total = h.totalResponses || h.distribution.reduce((acc, curr) => acc + curr.value, 0);
-        const positiveSum = h.distribution
-          .filter(d => positiveOptions.includes(d.name))
-          .reduce((acc, curr) => acc + curr.value, 0);
-        const top = h.distribution.reduce((best, curr) => (curr.value > best.value ? curr : best), h.distribution[0]);
+        const computedTotal = h.distribution.reduce((acc, curr) => acc + curr.value, 0);
+        const total = h.totalResponses ?? computedTotal;
+
+        const distributionNames = h.distribution.map(d => d.name);
+        const basePositive = (question.positiveOptions && question.positiveOptions.length > 0)
+          ? question.positiveOptions
+          : []; // se não definirem, não “chuto” positivo
+
+        const effectivePositive = expandPositiveOptions(basePositive, distributionNames);
+
+        const positiveSum = effectivePositive.length
+          ? h.distribution
+              .filter(d => effectivePositive.includes(d.name))
+              .reduce((acc, curr) => acc + curr.value, 0)
+          : 0;
+
+        const top = h.distribution.length
+          ? h.distribution.reduce((best, curr) => (curr.value > best.value ? curr : best), h.distribution[0])
+          : { name: '—', value: 0 };
+
         return {
           hierarchy: h.hierarchy,
           total,
-          positivePercentage: (positiveSum / total) * 100,
+          positivePercentage: safePct(positiveSum, total),
           topOption: {
             name: top.name,
-            percentage: (top.value / total) * 100,
+            percentage: safePct(top.value, total),
           },
         };
       });
-  }, [question.hierarchyBreakdown, question.positiveOptions, question.data]);
+  }, [breakdown, question.positiveOptions]);
 
-  if (!question.hierarchyBreakdown || question.hierarchyBreakdown.length === 0) {
+  if (!breakdown.length) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-8 flex items-center justify-center text-slate-300 text-center">
         <div>
@@ -63,23 +148,29 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
     );
   }
 
-  const highestPositive = positiveStats.reduce((best, curr) => (curr.positivePercentage > best.positivePercentage ? curr : best), positiveStats[0]);
-  const lowestPositive = positiveStats.reduce((best, curr) => (curr.positivePercentage < best.positivePercentage ? curr : best), positiveStats[0]);
+  const highestPositive = positiveStats.reduce((best, curr) =>
+    curr.positivePercentage > best.positivePercentage ? curr : best
+  , positiveStats[0]);
 
-  const optionColors = question.hierarchyBreakdown[0].distribution.reduce<Record<string, string>>((acc, curr) => {
-    acc[curr.name] = curr.color || '#06b6d4';
-    return acc;
-  }, {});
+  const lowestPositive = positiveStats.reduce((best, curr) =>
+    curr.positivePercentage < best.positivePercentage ? curr : best
+  , positiveStats[0]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || payload.length === 0) return null;
-    const { name, value, payload: row } = payload[0];
-    const countKey = `${name}-count`;
-    const count = row[countKey];
+  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+    if (!active || !payload?.length) return null;
+
+    const item = payload[0];
+    const dataKey = String(item.dataKey);      // nome da alternativa
+    const row = item.payload as HierarchyRow;  // linha do gráfico
+
+    const count = Number(row[dataKey] ?? 0);
+    const total = Number(row.total ?? 0);
+    const pct = safePct(count, total);
+
     return (
       <div className="bg-slate-900 border border-slate-700 p-3 rounded shadow-xl">
-        <p className="font-bold text-cyan-400">{`${label} — ${name}`}</p>
-        <p className="text-white">{`${count} votos (${(value * 100).toFixed(1)}%)`}</p>
+        <p className="font-bold text-cyan-400">{`${label} — ${dataKey}`}</p>
+        <p className="text-white">{`${count} votos (${pct.toFixed(1)}%)`}</p>
       </div>
     );
   };
@@ -91,6 +182,7 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
           <Sparkles size={16} className="text-cyan-400" />
           Distribuição por hierarquia
         </div>
+
         <ResponsiveContainer width="100%" height={360}>
           <BarChart
             data={hierarchyData}
@@ -99,12 +191,24 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
             stackOffset="expand"
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-            <XAxis type="number" stroke="#94a3b8" tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} domain={[0, 1]} />
+            <XAxis
+              type="number"
+              stroke="#94a3b8"
+              tickFormatter={(v) => `${(Number(v) * 100).toFixed(0)}%`}
+              domain={[0, 1]}
+            />
             <YAxis type="category" dataKey="hierarchy" stroke="#f8fafc" width={150} tick={{ fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
             <Legend wrapperStyle={{ color: '#e2e8f0' }} />
-            {Object.keys(optionColors).map((option) => (
-              <Bar key={option} dataKey={option} stackId="a" fill={optionColors[option]} radius={[0, 4, 4, 0]} />
+
+            {optionMeta.optionNames.map((option) => (
+              <Bar
+                key={option}
+                dataKey={option}
+                stackId="a"
+                fill={optionMeta.colors[option] || '#06b6d4'}
+                radius={0}
+              />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -140,6 +244,7 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
             <Info size={16} />
             Comparativo rápido
           </div>
+
           <table className="w-full text-sm">
             <thead>
               <tr className="text-slate-400 uppercase text-[11px] border-b border-slate-800">
@@ -163,6 +268,7 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
             </tbody>
           </table>
         </div>
+
       </div>
     </div>
   );
