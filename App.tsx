@@ -8,6 +8,7 @@ import Cover from './components/slides/Cover';
 import Principles from './components/slides/Principles';
 import ExecutiveSummary from './components/slides/ExecutiveSummary';
 import ChartSlide from './components/slides/ChartSlide';
+import HierarchySlide from './components/slides/HierarchySlide';
 import TextAnalysis from './components/slides/TextAnalysis';
 import ActionPlan from './components/slides/ActionPlan';
 import ThankYou from './components/slides/ThankYou';
@@ -21,12 +22,19 @@ const App: React.FC = () => {
     { id: 'cover', component: <Cover />, title: '' },
     { id: 'principles', component: <Principles />, title: 'Princípios Inegociáveis' },
     { id: 'exec-summary', component: <ExecutiveSummary />, title: 'Resumo Executivo (KPIs)' },
-    // Map Questions to generic ChartSlide
-    ...QUESTIONS.map(q => ({
-      id: q.id,
-      component: <ChartSlide data={q} />,
-      title: q.title
-    })),
+    // Map Questions to general + hierarchy slides
+    ...QUESTIONS.flatMap(q => ([
+      {
+        id: `${q.id}-geral`,
+        component: <ChartSlide data={q} />,
+        title: `${q.title} (Geral)`
+      },
+      {
+        id: `${q.id}-hierarquia`,
+        component: <HierarchySlide question={q} />,
+        title: `${q.title} (Por hierarquia)`
+      }
+    ])),
     { id: 'text-analysis', component: <TextAnalysis />, title: 'Análise de Respostas Abertas' },
     { id: 'action-plan', component: <ActionPlan />, title: 'Prioridades & Plano de Ação' },
     { id: 'thank-you', component: <ThankYou />, title: '' }

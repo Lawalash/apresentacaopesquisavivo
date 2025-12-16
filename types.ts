@@ -4,6 +4,14 @@ export interface SurveyQuestion {
   data: { name: string; value: number; color?: string }[];
   insight: string;
   chartType: 'bar' | 'pie';
+  positiveOptions?: string[];
+  hierarchyBreakdown?: HierarchyBreakdown[];
+}
+
+export interface HierarchyBreakdown {
+  hierarchy: string;
+  totalResponses: number;
+  distribution: { name: string; value: number; color?: string }[];
 }
 
 export interface KPI {
