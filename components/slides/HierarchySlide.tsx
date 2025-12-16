@@ -30,9 +30,6 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
         const entry: Record<string, number | string> = { hierarchy: h.hierarchy, total };
 
         h.distribution.forEach(option => {
-          // Guardamos contagem em duas chaves:
-          // 1) option.name (para o gráfico)
-          // 2) `${option.name}-count` (para o tooltip, caso o recharts normalize valores)
           entry[option.name] = option.value;
           entry[`${option.name}-count`] = option.value;
         });
@@ -94,9 +91,6 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
     positiveStats[0]
   );
 
-  // ⚠️ Antes era baseado apenas no primeiro hierarchyBreakdown[0],
-  // mas isso pode falhar se algum nível não tiver todas as opções.
-  // Aqui fazemos união de todas as opções encontradas.
   const optionColors = useMemo(() => {
     const acc: Record<string, string> = {};
     for (const h of question.hierarchyBreakdown ?? []) {
@@ -107,28 +101,23 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
     return acc;
   }, [question.hierarchyBreakdown]);
 
-  /**
-   * ✅ Tooltip corrigido:
-   * - Antes você sempre usava payload[0] "fixo" (primeira série renderizada),
-   *   então parecia que só "Muito satisfeito" funcionava.
-   * - Agora usamos shared={false} e interpretamos corretamente o item hoverado.
-   */
+  // ✅ Tooltip corrigido: pega a hierarquia do row.hierarchy (não do label)
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
 
-    const item = payload[0];        // item hoverado (com shared={false})
-    const row = item.payload || {}; // linha (hierarquia)
-    const optionName = item.dataKey;
+    const item = payload[0];
+    const row = item?.payload || {};
+    const optionName = item?.dataKey ?? item?.name ?? '—';
 
-    const count =
-      row[`${optionName}-count`] ?? row[optionName] ?? 0;
+    const hierarchyLabel = row.hierarchy ?? label ?? '—';
 
+    const count = row[`${optionName}-count`] ?? row[optionName] ?? 0;
     const total = row.total ?? 0;
     const pct = total > 0 ? (Number(count) / Number(total)) * 100 : 0;
 
     return (
       <div className="bg-slate-900 border border-slate-700 p-3 rounded shadow-xl">
-        <p className="font-bold text-cyan-400">{`${label} — ${optionName}`}</p>
+        <p className="font-bold text-cyan-400">{`${hierarchyLabel} — ${optionName}`}</p>
         <p className="text-white">{`${count} votos (${pct.toFixed(1)}%)`}</p>
       </div>
     );
@@ -158,7 +147,7 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
             />
             <YAxis type="category" dataKey="hierarchy" stroke="#f8fafc" width={150} tick={{ fontSize: 12 }} />
 
-            {/* ✅ shared={false} para tooltip “por segmento” (cor hoverada) */}
+            {/* ✅ shared={false} => tooltip mostra apenas a cor/segmento hoverado */}
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} shared={false} />
 
             <Legend wrapperStyle={{ color: '#e2e8f0' }} />
