@@ -8,10 +8,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  TooltipProps,
 } from 'recharts';
-import { Sparkles, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
 import { SurveyQuestion } from '../../types';
+import { Sparkles, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
 
 interface Props {
   question: SurveyQuestion;
@@ -19,125 +18,62 @@ interface Props {
 
 const HIERARCHY_ORDER = ['Coordenador', 'Gerente Jr', 'Gerente Sênior', 'Analista Operação', 'Supervisor'];
 
-type HierarchyRow = {
-  hierarchy: string;
-  total: number;
-  // dynamic keys: optionName -> count
-  [optionName: string]: string | number;
-};
-
-const orderIndex = (hierarchy: string) => {
-  const idx = HIERARCHY_ORDER.indexOf(hierarchy);
-  return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
-};
-
-const safePct = (num: number, den: number) => (den > 0 ? (num / den) * 100 : 0);
-
-/**
- * Torna o cálculo de "positivo" resiliente:
- * - Se vier "Satisfeito / Muito satisfeito" e a distribuição tiver "Satisfeito" e "Muito satisfeito",
- *   a gente expande.
- */
-const expandPositiveOptions = (positiveOptions: string[], distributionNames: string[]) => {
-  const set = new Set<string>();
-
-  for (const opt of positiveOptions) {
-    if (distributionNames.includes(opt)) set.add(opt);
-
-    // tentativa de expandir "A / B" -> ["A","B"]
-    if (opt.includes('/')) {
-      opt.split('/').map(s => s.trim()).forEach(part => {
-        if (distributionNames.includes(part)) set.add(part);
-      });
-    }
-  }
-
-  return [...set];
-};
-
 const HierarchySlide: React.FC<Props> = ({ question }) => {
-  const breakdown = question.hierarchyBreakdown ?? [];
+  const hierarchyData = useMemo(() => {
+    if (!question.hierarchyBreakdown) return [];
 
-  const optionMeta = useMemo(() => {
-    // união das opções em todos os níveis
-    const names = new Set<string>();
-    const colors: Record<string, string> = {};
-
-    for (const h of breakdown) {
-      for (const d of h.distribution) {
-        names.add(d.name);
-        if (!colors[d.name] && d.color) colors[d.name] = d.color;
-      }
-    }
-
-    return {
-      optionNames: Array.from(names),
-      colors,
-    };
-  }, [breakdown]);
-
-  const hierarchyData = useMemo<HierarchyRow[]>(() => {
-    if (!breakdown.length) return [];
-
-    return breakdown
+    return question.hierarchyBreakdown
       .slice()
-      .sort((a, b) => orderIndex(a.hierarchy) - orderIndex(b.hierarchy))
+      .sort((a, b) => HIERARCHY_ORDER.indexOf(a.hierarchy) - HIERARCHY_ORDER.indexOf(b.hierarchy))
       .map(h => {
-        const computedTotal = h.distribution.reduce((acc, curr) => acc + curr.value, 0);
-        const total = h.totalResponses ?? computedTotal;
+        const total = h.totalResponses || h.distribution.reduce((acc, curr) => acc + curr.value, 0);
+        const entry: Record<string, number | string> = { hierarchy: h.hierarchy, total };
 
-        const row: HierarchyRow = { hierarchy: h.hierarchy, total };
+        h.distribution.forEach(option => {
+          // Guardamos contagem em duas chaves:
+          // 1) option.name (para o gráfico)
+          // 2) `${option.name}-count` (para o tooltip, caso o recharts normalize valores)
+          entry[option.name] = option.value;
+          entry[`${option.name}-count`] = option.value;
+        });
 
-        // preenche todas as opções com 0 (garante consistência do stack)
-        for (const opt of optionMeta.optionNames) row[opt] = 0;
-
-        // aplica os valores existentes
-        for (const d of h.distribution) row[d.name] = d.value;
-
-        return row;
+        return entry;
       });
-  }, [breakdown, optionMeta.optionNames]);
+  }, [question.hierarchyBreakdown]);
 
   const positiveStats = useMemo(() => {
-    if (!breakdown.length) return [];
+    if (!question.hierarchyBreakdown) return [];
 
-    return breakdown
+    const positiveOptions =
+      (question.positiveOptions && question.positiveOptions.length > 0)
+        ? question.positiveOptions
+        : ([] as string[]);
+
+    return question.hierarchyBreakdown
       .slice()
-      .sort((a, b) => orderIndex(a.hierarchy) - orderIndex(b.hierarchy))
+      .sort((a, b) => HIERARCHY_ORDER.indexOf(a.hierarchy) - HIERARCHY_ORDER.indexOf(b.hierarchy))
       .map(h => {
-        const computedTotal = h.distribution.reduce((acc, curr) => acc + curr.value, 0);
-        const total = h.totalResponses ?? computedTotal;
+        const total = h.totalResponses || h.distribution.reduce((acc, curr) => acc + curr.value, 0);
 
-        const distributionNames = h.distribution.map(d => d.name);
-        const basePositive = (question.positiveOptions && question.positiveOptions.length > 0)
-          ? question.positiveOptions
-          : []; // se não definirem, não “chuto” positivo
+        const positiveSum = h.distribution
+          .filter(d => positiveOptions.includes(d.name))
+          .reduce((acc, curr) => acc + curr.value, 0);
 
-        const effectivePositive = expandPositiveOptions(basePositive, distributionNames);
-
-        const positiveSum = effectivePositive.length
-          ? h.distribution
-              .filter(d => effectivePositive.includes(d.name))
-              .reduce((acc, curr) => acc + curr.value, 0)
-          : 0;
-
-        const top = h.distribution.length
-          ? h.distribution.reduce((best, curr) => (curr.value > best.value ? curr : best), h.distribution[0])
-          : { name: '—', value: 0 };
+        const top = h.distribution.reduce((best, curr) => (curr.value > best.value ? curr : best), h.distribution[0]);
 
         return {
           hierarchy: h.hierarchy,
           total,
-          positivePercentage: safePct(positiveSum, total),
+          positivePercentage: total > 0 ? (positiveSum / total) * 100 : 0,
           topOption: {
             name: top.name,
-            percentage: safePct(top.value, total),
+            percentage: total > 0 ? (top.value / total) * 100 : 0,
           },
         };
       });
-  }, [breakdown, question.positiveOptions]);
+  }, [question.hierarchyBreakdown, question.positiveOptions]);
 
-  if (!breakdown.length) {
+  if (!question.hierarchyBreakdown || question.hierarchyBreakdown.length === 0) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-8 flex items-center justify-center text-slate-300 text-center">
         <div>
@@ -148,28 +84,51 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
     );
   }
 
-  const highestPositive = positiveStats.reduce((best, curr) =>
-    curr.positivePercentage > best.positivePercentage ? curr : best
-  , positiveStats[0]);
+  const highestPositive = positiveStats.reduce(
+    (best, curr) => (curr.positivePercentage > best.positivePercentage ? curr : best),
+    positiveStats[0]
+  );
 
-  const lowestPositive = positiveStats.reduce((best, curr) =>
-    curr.positivePercentage < best.positivePercentage ? curr : best
-  , positiveStats[0]);
+  const lowestPositive = positiveStats.reduce(
+    (best, curr) => (curr.positivePercentage < best.positivePercentage ? curr : best),
+    positiveStats[0]
+  );
 
-  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
-    if (!active || !payload?.length) return null;
+  // ⚠️ Antes era baseado apenas no primeiro hierarchyBreakdown[0],
+  // mas isso pode falhar se algum nível não tiver todas as opções.
+  // Aqui fazemos união de todas as opções encontradas.
+  const optionColors = useMemo(() => {
+    const acc: Record<string, string> = {};
+    for (const h of question.hierarchyBreakdown ?? []) {
+      for (const d of h.distribution) {
+        if (!acc[d.name]) acc[d.name] = d.color || '#06b6d4';
+      }
+    }
+    return acc;
+  }, [question.hierarchyBreakdown]);
 
-    const item = payload[0];
-    const dataKey = String(item.dataKey);      // nome da alternativa
-    const row = item.payload as HierarchyRow;  // linha do gráfico
+  /**
+   * ✅ Tooltip corrigido:
+   * - Antes você sempre usava payload[0] "fixo" (primeira série renderizada),
+   *   então parecia que só "Muito satisfeito" funcionava.
+   * - Agora usamos shared={false} e interpretamos corretamente o item hoverado.
+   */
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
 
-    const count = Number(row[dataKey] ?? 0);
-    const total = Number(row.total ?? 0);
-    const pct = safePct(count, total);
+    const item = payload[0];        // item hoverado (com shared={false})
+    const row = item.payload || {}; // linha (hierarquia)
+    const optionName = item.dataKey;
+
+    const count =
+      row[`${optionName}-count`] ?? row[optionName] ?? 0;
+
+    const total = row.total ?? 0;
+    const pct = total > 0 ? (Number(count) / Number(total)) * 100 : 0;
 
     return (
       <div className="bg-slate-900 border border-slate-700 p-3 rounded shadow-xl">
-        <p className="font-bold text-cyan-400">{`${label} — ${dataKey}`}</p>
+        <p className="font-bold text-cyan-400">{`${label} — ${optionName}`}</p>
         <p className="text-white">{`${count} votos (${pct.toFixed(1)}%)`}</p>
       </div>
     );
@@ -198,16 +157,19 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
               domain={[0, 1]}
             />
             <YAxis type="category" dataKey="hierarchy" stroke="#f8fafc" width={150} tick={{ fontSize: 12 }} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+
+            {/* ✅ shared={false} para tooltip “por segmento” (cor hoverada) */}
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} shared={false} />
+
             <Legend wrapperStyle={{ color: '#e2e8f0' }} />
 
-            {optionMeta.optionNames.map((option) => (
+            {Object.keys(optionColors).map((option) => (
               <Bar
                 key={option}
                 dataKey={option}
                 stackId="a"
-                fill={optionMeta.colors[option] || '#06b6d4'}
-                radius={0}
+                fill={optionColors[option]}
+                radius={[0, 4, 4, 0]}
               />
             ))}
           </BarChart>
@@ -219,7 +181,9 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
           <div>
             <p className="text-xs uppercase text-slate-400 font-semibold">Maior positivo</p>
             <p className="text-lg font-bold text-white">{highestPositive.hierarchy}</p>
-            <p className="text-sm text-cyan-400 font-semibold">{highestPositive.positivePercentage.toFixed(1)}% positivos</p>
+            <p className="text-sm text-cyan-400 font-semibold">
+              {highestPositive.positivePercentage.toFixed(1)}% positivos
+            </p>
           </div>
           <div className="bg-cyan-900/40 text-cyan-200 px-3 py-2 rounded-lg flex items-center gap-2 text-sm">
             <ArrowUpRight size={16} />
@@ -231,7 +195,9 @@ const HierarchySlide: React.FC<Props> = ({ question }) => {
           <div>
             <p className="text-xs uppercase text-slate-400 font-semibold">Menor positivo</p>
             <p className="text-lg font-bold text-white">{lowestPositive.hierarchy}</p>
-            <p className="text-sm text-rose-400 font-semibold">{lowestPositive.positivePercentage.toFixed(1)}% positivos</p>
+            <p className="text-sm text-rose-400 font-semibold">
+              {lowestPositive.positivePercentage.toFixed(1)}% positivos
+            </p>
           </div>
           <div className="bg-rose-900/40 text-rose-200 px-3 py-2 rounded-lg flex items-center gap-2 text-sm">
             <ArrowDownRight size={16} />
